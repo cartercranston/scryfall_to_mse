@@ -11,6 +11,7 @@ def main():
 		path = sys.argv[4]
 		image_folder_path = os.path.join(path, "images", set_name, "") if (mode == "images" or mode == "create") else ""
 		text_folder_path = os.path.join(path, "text", set_name, "") if (mode == "text" or mode == "create") else ""
+		keyboard_path = os.path.join(path, "text", set_name, "") if (mode == "keyboard") else ""
 	else:
 		print("""Not enough arguments given. The desired format is as follows:
 		python run_scripts.py <three-letter set code> <set name> <mode> (<path to folder>)
@@ -24,7 +25,8 @@ def main():
 
 	# hijacking the keyboard needs to be specifically asked for
 	if mode == "keyboard":
-		connect_dir_to_keyboard(text_folder_path)
+		print(keyboard_path)
+		connect_dir_to_keyboard(keyboard_path)
 
 
 if __name__ == "__main__":
