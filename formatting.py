@@ -13,6 +13,9 @@ def format_mana_cost(mana_cost):
 			s += symbol
 	return s + generic
 
+def format_art(art_name):
+	return "\n\n".join(["", "make_image;", art_name, "down", "", "enter", "", "enter", ""])
+
 def format_type(type):
 	type = type.replace(r" — ", "-") # MSE doesn't like emdashes, and doesn't need spaces
 	return type
@@ -21,9 +24,9 @@ def format_rarity(rarity):
 	return "\n\n".join(["", "down", "", rarity[0], "", "enter", ""])
 
 def format_text_box(text_box):
-	# format generic mana symbols and remove braces from other mana symbols
 	s = ""
 
+	# format generic mana symbols and remove braces from other mana symbols
 	tokens = text_box.split("{")
 	for token in tokens:
 		split = token.split("}")
