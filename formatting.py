@@ -3,27 +3,30 @@ import re
 def format_mana_cost(mana_cost):
 	generic = ""
 	s = ""
+	appendix = ""
 
 	# remove curly braces and split string
 	symbols = mana_cost.replace("{", "").split("}")
 	for symbol in symbols:
 		if symbol.isdigit():
 			generic = "V" * int(symbol)
+		elif symbol == "X":
+			appendix += symbol
 		else:
 			s += symbol
-	return s + generic
+	return s + generic + appendix
 
 def format_art(art_name):
 	return "\n\n".join(["", "make_image;", art_name, "down", "", "enter", "", "enter", ""])
 
 def format_type(type):
-	type = type.replace(r" — ", "-") # MSE doesn't like emdashes, and doesn't need spaces
+	type = type.replace(r" — ", "-") # MSE doesn't like emdashes, and doesn't need spaces before or after hyphens
 	return type
 
 def format_rarity(rarity):
 	return "\n\n".join(["", "down", "", rarity[0], "", "enter", ""])
 
-def format_text_box(text_box):
+def format_text_box(text_box, flavour_text):
 	s = ""
 
 	# format generic mana symbols and remove braces from other mana symbols
@@ -42,7 +45,12 @@ def format_text_box(text_box):
 		else:
 			print("token longer than expected in format_text_box, where text box is:\n" + text_box)
 
-	s = re.sub(r"\(.*\)", "", s) # remove reminder text
+	# remove reminder text
+	s = re.sub(r"\(.*\)", "", s)
+
+	# add flavour text
+	if flavour_text:
+		s = "\n\n".join([s, "down", "", "down", "", "down", "", "down", flavour_text])
 
 	return s
 

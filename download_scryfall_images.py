@@ -24,7 +24,7 @@ def get_scryfall_data(set_code):
 	while True:
 		# add the text of each card on the current page to a list along with a URI for its artwork
 		for card in response.json()["data"]:
-			cards.append({"name":card["name"], "mana_cost":card["mana_cost"], "image_uri":card["image_uris"]["art_crop"], "type":card["type_line"], "rarity":card["rarity"], "text_box":card["oracle_text"], "watermark":card.get("watermark",""), "pt":(card.get("power", "") + "/" + card.get("toughness", "")), "artist":card["artist"]})
+			cards.append({"name":card["name"], "mana_cost":card["mana_cost"], "image_uri":card["image_uris"]["art_crop"], "type":card["type_line"], "rarity":card["rarity"], "text_box":card["oracle_text"], "flavour_text":card.get("flavor_text", ""), "watermark":card.get("watermark",""), "pt":(card.get("power", "") + "/" + card.get("toughness", "")), "artist":card["artist"]})
 		# go to next page, or break
 		if response.json()["has_more"] == True:
 			response = requests.get(response.json()["next_page"])
@@ -57,7 +57,7 @@ def make_folders(image_folder_path, text_folder_path, cards):
 		if image_folder_path:
 			add_to_image_folder(image_folder_path, card["name"], requests.get(card["image_uri"]))
 		if text_folder_path:
-			add_to_text_folder(text_folder_path, card["name"], card["mana_cost"], card["type"], card["rarity"], card["text_box"], card["watermark"], card["pt"], card["artist"])
+			add_to_text_folder(text_folder_path, card["name"], card["mana_cost"], card["type"], card["rarity"], card["text_box"], card["flavour_text"], card["watermark"], card["pt"], card["artist"])
 	
 def add_to_image_folder(folder_path, cardname, file):
 	"""Add a jpg to the folder for images"""
@@ -69,7 +69,7 @@ def add_to_image_folder(folder_path, cardname, file):
 	with open(folder_path + cardname + ".jpg", "xb") as f:
 		f.write(file.content)
 
-def add_to_text_folder(folder_path, cardname, mana_cost, type, rarity, text_box, watermark, pt, artist):
+def add_to_text_folder(folder_path, cardname, mana_cost, type, rarity, text_box, flavour_text, watermark, pt, artist):
 	"""Format the other card data, make a text file and add it to the folder for keyboard_controller"""
 	# if card has been processed already, don't do it again
 	if os.path.exists(folder_path + cardname + ".txt"):
@@ -88,7 +88,7 @@ def add_to_text_folder(folder_path, cardname, mana_cost, type, rarity, text_box,
 		s += tab * 2 # frame
 		s += tab + formatting.format_type(type)
 		s += tab + formatting.format_rarity(rarity)
-		s += tab + formatting.format_text_box(text_box)
+		s += tab + formatting.format_text_box(text_box, flavour_text)
 		s += tab + formatting.format_watermark(watermark)
 		s += tab + formatting.format_pt(pt)
 		s += tab # custom numbering
