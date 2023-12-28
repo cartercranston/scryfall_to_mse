@@ -8,7 +8,7 @@ def format_mana_cost(mana_cost):
 	# remove curly braces and split string
 	symbols = mana_cost.replace("{", "").split("}")
 	for symbol in symbols:
-		if symbol.isdigit():
+		if symbol.isdigit() and symbol != "0":
 			generic = "V" * int(symbol)
 		elif symbol == "X":
 			appendix += symbol
@@ -37,7 +37,7 @@ def format_text_box(text_box, flavour_text):
 			s += split[0]
 			continue
 		elif len(split) == 2:
-			if split[0].isdigit():
+			if split[0].isdigit() and split[0] != "0":
 				s += "V" * int(split[0])
 			else:
 				s += split[0]
