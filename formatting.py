@@ -45,8 +45,8 @@ def format_text_box(text_box, flavour_text):
 		else:
 			print("token longer than expected in format_text_box, where text box is:\n" + text_box)
 
-	# remove reminder text
-	s = re.sub(r"\(.*\)", "", s)
+	# remove reminder text that's not on its own line
+	s = re.sub(r"(?<!\n)\(.*\)", "", s)
 
 	# add flavour text
 	if flavour_text:
