@@ -29,18 +29,18 @@ def create_card_from_string(s, first_card = False):
             if send and line:
                 if "make_image;" in line:
                     pyautogui.doubleClick()
-                    time.sleep(0.6)
+                    time.sleep(0.5)
                 else:
                     keyboard.send(line)
-                    time.sleep(0.05)
+                    time.sleep(0.09)
                 send = False
             else:
                 # line may contain more than one "line" in the typical sense
-                keyboard.write(line, delay=0.002)
-                time.sleep(0.03)
+                keyboard.write(line, delay=0.003)
+                time.sleep(0.09)
                 send = True
         else:
-            sys.exit()
+            break
 
 def connect_dir_to_keyboard(path):
     """Goes through a directory one hundred and three files at a time whenever enter is pressed"""
@@ -59,12 +59,10 @@ def connect_dir_to_keyboard(path):
         s = f.read()
     create_card_from_string(s.decode("utf-8"), True)
 
-    i = 0
     for file in files[1:]:
-        if i % 103 == 0:
-            keyboard.wait('enter')
-        i += 1
-
-        with open(os.path.join(path, file), "rb") as f:
-            s = f.read()
-        create_card_from_string(s.decode("utf-8"))
+        if not event.is_set():
+            with open(os.path.join(path, file), "rb") as f:
+                s = f.read()
+            create_card_from_string(s.decode("utf-8"))
+        else:
+            break
