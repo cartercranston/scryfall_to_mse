@@ -10,7 +10,7 @@ def check_status(response):
 		print(response.status_code + ": " + response)
 		sys.exit(1)
 
-def get_scryfall_data(set_code):
+def get_scryfall_data(set_code, accept_variants):
 	"""Create a list containing information about each card in a certain Magic set"""
 	# get set data and URIs from scryfall api
 	response = requests.get("https://api.scryfall.com/sets/" + set_code)
@@ -24,7 +24,10 @@ def get_scryfall_data(set_code):
 	while True:
 		# add the text of each card on the current page to a list along with a URI for its artwork
 		for card in response.json()["data"]:
-			cards.append({"name":card["name"], "mana_cost":card["mana_cost"], "image_uri":card["image_uris"]["art_crop"], "type":card["type_line"], "rarity":card["rarity"], "text_box":card["oracle_text"], "flavour_text":card.get("flavor_text", ""), "watermark":card.get("watermark",""), "pt":(card.get("power", "") + "/" + card.get("toughness", "")), "artist":card["artist"]})
+			if accept_variants or (card["booster"] == True or ("promo_types" in card and "rebalanced" in card["promo_types"])):
+				cards.append({"name":card["name"], "mana_cost":card["mana_cost"], "image_uri":card["image_uris"]["art_crop"], "type":card["type_line"], "rarity":card["rarity"], "text_box":card["oracle_text"], "flavour_text":card.get("flavor_text", ""), "watermark":card.get("watermark",""), "pt":(card.get("power", "") + "/" + card.get("toughness", "")), "artist":card["artist"]})
+			else:
+				print("Skipped card: ", card["name"], " ", card["scryfall_uri"])
 		# go to next page, or break
 		if response.json()["has_more"] == True:
 			response = requests.get(response.json()["next_page"])
