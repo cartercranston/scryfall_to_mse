@@ -113,15 +113,9 @@ def format_pt(pt):
 		power, toughness = pt.split("/")
 		if power.isdigit() and int(power) > 1:
 			# multiply power by 1.5
-			if int(power) % 2 == 0:
-				power = str(3 * int(power) // 2)
-			else:
-				power = str(1.5 * int(power))
+			power = power + "x1.5"
 		if toughness.isdigit() and int(toughness) > 1:
 			# multiply toughness by 1.5
-			if int(toughness) % 2 == 0:
-				toughness = str(3 * int(toughness) // 2)
-			else:
-				toughness = str(1.5 * int(toughness))
+			toughness = toughness + "x1.5"
 		
 		return "/".join([power, toughness])
