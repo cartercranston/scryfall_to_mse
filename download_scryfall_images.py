@@ -37,7 +37,7 @@ def get_scryfall_data(set_code, accept_variants):
 	# return the list of card names and artwork URIs
 	return cards
 
-def make_folders(image_folder_path, text_folder_path, cards):
+def make_folders(image_folder_path, text_folder_path, cardlist_path, cards):
 	"""Uses json data from scryfall to create a folder of jpgs with card images and a folder of text files for keyboard_controller to read"""
 	# delete folders if they already exist
 	if image_folder_path and os.path.isdir(image_folder_path):
@@ -51,6 +51,8 @@ def make_folders(image_folder_path, text_folder_path, cards):
 	if text_folder_path:
 		os.makedirs(text_folder_path)
 		print("creating text folder at " + text_folder_path)
+	if cardlist_path:
+		cardlist = ""
 
 	# for each card, get its image and text, then add them to the folders
 	for card in cards:
@@ -61,7 +63,13 @@ def make_folders(image_folder_path, text_folder_path, cards):
 			add_to_image_folder(image_folder_path, card["name"], requests.get(card["image_uri"]))
 		if text_folder_path:
 			add_to_text_folder(text_folder_path, card["name"], card["mana_cost"], card["type"], card["rarity"], card["text_box"], card["flavour_text"], card["watermark"], card["pt"], card["artist"])
-	
+		if cardlist_path:
+			cardlist += card["name"] + "\n"
+	# add a list of all card names to the folder as cardlist.txt
+	if cardlist_path:
+		with open(cardlist_path, "x") as f:
+			f.write(cardlist)
+
 def add_to_image_folder(folder_path, cardname, file):
 	"""Add a jpg to the folder for images"""
 	# multiple land cards can have the same name, but different artworks

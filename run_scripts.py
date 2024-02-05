@@ -12,6 +12,7 @@ def main():
 		image_folder_path = os.path.join(path, "images", set_name, "") if (mode == "images" or mode == "all images" or mode == "download") else ""
 		text_folder_path = os.path.join(path, "text", set_name, "") if (mode == "text" or mode == "download") else ""
 		keyboard_path = os.path.join(path, "text", set_name, "") if (mode == "keyboard") else ""
+		cardlist_path = os.path.join(path, "cardlists", set_name, ".txt") if (mode == "text" or mode == "download" or mode == "images" or mode == "all images") else ""
 	else:
 		print("""    Not enough arguments given. The desired format is as follows:
       python run_scripts.py <three-letter set code> <set name> <mode> <path to folder>
@@ -21,7 +22,7 @@ def main():
 		
 	# scryfall only needs to be bothered if we're getting new data
 	if mode == "images" or mode == "text" or mode == "download":
-		make_folders(image_folder_path, text_folder_path, get_scryfall_data(set_code, mode == "all images"))
+		make_folders(image_folder_path, text_folder_path, cardlist_path, get_scryfall_data(set_code, mode == "all images"))
 
 	# hijacking the keyboard needs to be specifically asked for
 	if mode == "keyboard":
