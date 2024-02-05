@@ -20,7 +20,7 @@ def format_art(art_name):
 	return "\n\n".join(["", "make_image;", art_name, "down", "", "enter", "", "enter", ""])
 
 def format_type(type):
-	type = type.replace(r" — ", "-") # MSE doesn't like emdashes, and doesn't need spaces before or after hyphens
+	type = type.replace(r" — ", r"-").replace("−", r"-") # MSE doesn't like emdashes, and doesn't need spaces before or after hyphens
 	return type
 
 def format_rarity(rarity):

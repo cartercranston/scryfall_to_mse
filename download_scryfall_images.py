@@ -7,7 +7,7 @@ import formatting
 def check_status(response):
 	"""Ensure that all requests to Scryfall are successful"""
 	if response.status_code != 200:
-		print(response.status_code + ": " + response)
+		print(str(response.status_code) + ": " + str(response.json()))
 		sys.exit(1)
 
 def get_scryfall_data(set_code, accept_variants):
@@ -55,7 +55,7 @@ def make_folders(image_folder_path, text_folder_path, cards):
 	# for each card, get its image and text, then add them to the folders
 	for card in cards:
 		# certain characters are prohibited in filenames
-		for special_char in (':','?','/','&','#','!','-'):
+		for special_char in (':','?','/','&','#','!'):
 			card["name"] = card["name"].replace(special_char, '')
 		if image_folder_path:
 			add_to_image_folder(image_folder_path, card["name"], requests.get(card["image_uri"]))
