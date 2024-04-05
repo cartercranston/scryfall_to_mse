@@ -88,22 +88,6 @@ def add_to_text_folder(folder_path, cardname, mana_cost, type, rarity, text_box,
 	
 	# add the text to a file
 	with open(folder_path + cardname + ".txt", "xb") as f:
-		tab = "\n\ntab\n\n"
-
-		s = ""
-		s += tab # notes
-		s += tab # tombstone
-		s += tab + cardname
-		s += tab + formatting.format_mana_cost(mana_cost)
-		s += tab + formatting.format_art(cardname)
-		s += tab * 2 # frame
-		s += tab + formatting.format_type(type)
-		s += tab + formatting.format_rarity(rarity)
-		s += tab + formatting.format_text_box(text_box, flavour_text)
-		s += tab + formatting.format_watermark(watermark)
-		s += tab + formatting.format_pt(pt)
-		s += tab # custom numbering
-		s += tab # list indicator
-		s += tab + artist
-		s += tab # end
-		f.write(s.encode("utf-8"))
+		f = formatting.Formatting(cardname, mana_cost, type, rarity, text_box, flavour_text, watermark, pt, artist)
+		formatted_text = str(f)
+		f.write(formatted_text.encode("utf-8"))
