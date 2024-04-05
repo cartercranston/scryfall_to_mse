@@ -4,7 +4,6 @@ class Formatting:
 	def __init__(self, cardname, mana_cost, type, rarity, text_box, flavour_text, watermark, pt, artist):
 		self.cardname = cardname
 		self.mana_cost = mana_cost
-		self.art_name = cardname
 		self.type = type
 		self.rarity = rarity
 		self.text_box = text_box
@@ -51,10 +50,16 @@ class Formatting:
 		return s + generic + appendix
 
 	def format_art(self):
-		return "\n\n".join(["", "make_image;", self.art_name, "down", "", "enter", "", "enter", ""])
+		return "\n\n".join(["", "make_image;", self.cardname, "down", "", "enter", "", "enter", ""])
 
 	def format_type(self):
 		type = self.type.replace(r" — ", r"-").replace("−", r"-") # MSE doesn't like emdashes, and doesn't need spaces before or after hyphens
+		if "Legendary" in type:
+			type = type.replace("Legendary", "")
+			if "Creature" in type:
+				type = type + " Legend"
+		if self.mana_cost < 3 or ("Sacrifice " + self.cardname) in self.text_box:
+			type = type.replace("Artifact", "Bauble")
 		return type
 
 	def format_rarity(self):
@@ -62,6 +67,10 @@ class Formatting:
 
 	def format_text_box(self):
 		s = ""
+
+		# add legend rule
+		if "Legendary" in self.type:
+			s += "Unique\n"
 
 		# format generic mana symbols and remove braces from other mana symbols
 		tokens = self.text_box.split("{")
