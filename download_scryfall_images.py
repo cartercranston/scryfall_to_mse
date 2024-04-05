@@ -24,10 +24,17 @@ def get_scryfall_data(set_code, accept_variants):
 	while True:
 		# add the text of each card on the current page to a list along with a URI for its artwork
 		for card in response.json()["data"]:
-			if accept_variants or (card["booster"] == True or ("promo_types" in card and "rebalanced" in card["promo_types"])):
-				cards.append({"name":card["name"], "mana_cost":card["mana_cost"], "image_uri":card["image_uris"]["art_crop"], "type":card["type_line"], "rarity":card["rarity"], "text_box":card["oracle_text"], "flavour_text":card.get("flavor_text", ""), "watermark":card.get("watermark",""), "pt":(card.get("power", "") + "/" + card.get("toughness", "")), "artist":card["artist"]})
+			if accept_variants or card["booster"] == True or ("promo_types" in card and "rebalanced" in card["promo_types"]):
+				# if the card is double-faced, treat each face as a card
+				if "card_faces" in card:
+					faces = card["card_faces"]
+				else:
+					faces = [card]
+				for face in faces:
+					cards.append({"name":face["name"], "mana_cost":face["mana_cost"], "image_uri":face["image_uris"]["art_crop"], "type":face["type_line"], "rarity":card["rarity"], "text_box":face["oracle_text"], "flavour_text":face.get("flavor_text", ""), "watermark":face.get("watermark",""), "pt":(face.get("power", "") + "/" + face.get("toughness", "")), "artist":face["artist"]})
 			else:
 				print("Skipped card: ", card["name"], " ", card["scryfall_uri"])
+
 		# go to next page, or break
 		if response.json()["has_more"] == True:
 			response = requests.get(response.json()["next_page"])
@@ -88,6 +95,6 @@ def add_to_text_folder(folder_path, cardname, mana_cost, type, rarity, text_box,
 	
 	# add the text to a file
 	with open(folder_path + cardname + ".txt", "xb") as f:
-		f = formatting.Formatting(cardname, mana_cost, type, rarity, text_box, flavour_text, watermark, pt, artist)
-		formatted_text = str(f)
+		formatter = formatting.Formatting(cardname, mana_cost, type, rarity, text_box, flavour_text, watermark, pt, artist)
+		formatted_text = str(formatter)
 		f.write(formatted_text.encode("utf-8"))
