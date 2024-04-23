@@ -173,6 +173,7 @@ def main():
 	
 	header_totals_unweighted = [0] * (len(WANTED_COLUMNS) - non_averaged_columns) # each element is the numerator of a 'Mean'
 	header_totals_weighted = [0] * (len(WANTED_COLUMNS) - non_averaged_columns) # each element is the numerator of an 'Average'
+	header_unweighted_denominators = [0] * (len(WANTED_COLUMNS) - non_averaged_columns) # each element is the denominator of a 'Mean'
 	header_weighted_denominators = [0] * (len(WANTED_COLUMNS) - non_averaged_columns) # each element is the denominator of an 'Average'
 	
 	default_numpicked = [0] * num_cards # used to calculate the weighting on the White, Blue, Black, Red, and Green averages
@@ -220,6 +221,7 @@ def main():
 					# store value for average calculations
 					header_totals_unweighted[mod_i] += ata
 					header_totals_weighted[mod_i] += ata * numpicked
+					header_unweighted_denominators[ata_index(mod_i) - non_averaged_columns] += 1
 					header_weighted_denominators[ata_index(mod_i) - non_averaged_columns] += numpicked
 					# add to grid
 					grid[card_i][ata_index(mod_i)] = str(round(ata, 2))
@@ -230,6 +232,7 @@ def main():
 					# store value for average calculations
 					header_totals_unweighted[mod_i + 1 * len(DRAFT_COLUMN_MODIFIERS)] += mainboard_ratio
 					header_totals_weighted[mod_i + 1 * len(DRAFT_COLUMN_MODIFIERS)] += mainboard_ratio * numpicked
+					header_unweighted_denominators[mainboard_percent_index(mod_i) - non_averaged_columns] += 1
 					header_weighted_denominators[mainboard_percent_index(mod_i) - non_averaged_columns] += numpicked
 					# add to grid as percentage
 					grid[card_i][mainboard_percent_index(mod_i)] = str(round(mainboard_ratio * 100)) + "%"
@@ -252,6 +255,7 @@ def main():
 					# store value for average calculations
 					header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)] += gpwr
 					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)] += gpwr * numpicked
+					header_unweighted_denominators[gpwr_index(mod_i) - non_averaged_columns] += 1
 					header_weighted_denominators[gpwr_index(mod_i) - non_averaged_columns] += numpicked
 					# add to grid as percentage
 					grid[card_i][gpwr_index(mod_i)] = str(round(gpwr * 100)) + "%"
@@ -262,6 +266,7 @@ def main():
 					# store value for average calculations
 					header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd
 					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd * numpicked
+					header_unweighted_denominators[iwd_index(mod_i) - non_averaged_columns] += 1
 					header_weighted_denominators[iwd_index(mod_i) - non_averaged_columns] += numpicked
 					# add to grid as percentage-point-diff
 					grid[card_i][iwd_index(mod_i)] = str(round(iwd * 100)) + "pp"
@@ -274,6 +279,7 @@ def main():
 					# store value for average calculations
 					header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi
 					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi * numpicked
+					header_unweighted_denominators[ohi_index(mod_i) - non_averaged_columns] += 1
 					header_weighted_denominators[ohi_index(mod_i) - non_averaged_columns] += numpicked
 					# add to grid as percentage-point-diff
 					grid[card_i][ohi_index(mod_i)] = str(round(ohi * 100)) + "pp"
@@ -355,6 +361,7 @@ def main():
 				# store value for average calculations
 				header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)] += gpwr
 				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)] += gpwr * default_numpicked[card_i]
+				header_unweighted_denominators[gpwr_index(mod_i) - non_averaged_columns] += 1
 				header_weighted_denominators[gpwr_index(mod_i) - non_averaged_columns] += default_numpicked[card_i]
 				# add to grid as percentage
 				grid[card_i][gpwr_index(mod_i)] = str(round(gpwr * 100)) + "%"
@@ -362,6 +369,7 @@ def main():
 				# store value for average calculations
 				header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd
 				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd * default_numpicked[card_i]
+				header_unweighted_denominators[iwd_index(mod_i) - non_averaged_columns] += 1
 				header_weighted_denominators[iwd_index(mod_i) - non_averaged_columns] += default_numpicked[card_i]
 				# add to grid as percentage-point-diff
 				grid[card_i][iwd_index(mod_i)] = str(round(iwd * 100)) + "pp"
@@ -369,6 +377,7 @@ def main():
 				# store value for average calculations
 				header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi
 				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi * default_numpicked[card_i]
+				header_unweighted_denominators[ohi_index(mod_i) - non_averaged_columns] += 1
 				header_weighted_denominators[ohi_index(mod_i) - non_averaged_columns] += default_numpicked[card_i]
 				# add to grid as percentage-point-diff
 				grid[card_i][ohi_index(mod_i)] = str(round(ohi * 100)) + "pp"
@@ -380,7 +389,7 @@ def main():
 	# print(header_totals_weighted[3])
 	# print(header_weighted_denominators[3])
 	for i in range(non_averaged_columns, len(WANTED_COLUMNS)):
-		add_to_header(grid_header, False, i, ratio(header_totals_unweighted[i - non_averaged_columns], num_cards))
+		add_to_header(grid_header, False, i, ratio(header_totals_unweighted[i - non_averaged_columns], header_unweighted_denominators[i - non_averaged_columns]))
 		add_to_header(grid_header, True, i, ratio(header_totals_weighted[i - non_averaged_columns], header_weighted_denominators[i - non_averaged_columns]))
 
 	# Finally, export the grid
