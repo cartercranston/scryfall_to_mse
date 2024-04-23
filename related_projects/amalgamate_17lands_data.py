@@ -1,6 +1,7 @@
-import os, sys, codecs, csv
+import os, codecs, csv
 
 PATH = os.path.join("BRO statistics", "")
+FILENAMES = os.listdir(PATH)
 EXPECTED_COLUMNS = ("Name","Color","Rarity","# Seen","ALSA","# Picked","ATA","# GP",r"% GP","GP WR","# OH","OH WR","# GD","GD WR","# GIH","GIH WR","# GNS","GNS WR","IWD")
 CONST_COLUMNS = ("Name","Color","Rarity")
 DRAFT_COLUMNS = ("#Picked","ATA",r"Played %")
@@ -20,10 +21,27 @@ for column in DRAFT_COLUMNS:
 for column in INGAME_COLUMNS:
 	for modifier in INGAME_COLUMN_MODIFIERS:
 		WANTED_COLUMNS.append(modifier + column)
-GP_INDEX = 0
-OH_INDEX = 1
-GIH_INDEX = 2
-GNS_INDEX = 3
+
+CSV_NAME = 0
+CSV_COLOUR = 1
+CSV_RARITY = 2
+CSV_NUMPICKED = 5
+CSV_ATA = 6
+CSV_NUMGP = 7
+CSV_PERCENTGP = 8
+CSV_GPWR = 9
+CSV_NUMOH = 10
+CSV_OHWR = 11
+CSV_NUMGIH = 14
+CSV_GIHWR = 15
+CSV_NUMGNS = 16
+CSV_GNSWR = 17
+CSV_IWD = 18
+
+COLOUR_GP_INDEX = 0
+COLOUR_OH_INDEX = 1
+COLOUR_GIH_INDEX = 2
+COLOUR_GNS_INDEX = 3
 
 # method written by SKG, https://www.stefangordon.com/remove-bom-mark-from-text-files-in-python/
 def remove_bom_inplace(path):
@@ -45,6 +63,12 @@ def remove_bom_inplace(path):
 			fp.seek(-bom_length, os.SEEK_CUR)
 			fp.truncate()
 
+
+def assert_filename(filename):
+	"""Ensures that there is a file with the given name in the folder of csv files."""
+	if filename not in FILENAMES:
+		print("missing file " + filename)
+		exit()
 
 def write_grid_to_file(header, grid):
 	"""Convert the header, then the grid, into a list of comma-separated values. Write the result into a file."""
@@ -93,16 +117,11 @@ def ratio(x, y):
 		return x / y
 
 def ratio_difference(x1, y1, x2, y2):
-	"""Return the difference of x1/y1 and x2/y2, if possible"""
-	if y1 == 0:
-		return ratio(x2, y2)
-	elif y2 == 0:
-		return ratio(x1, y1)
-	elif y1 == "" or y2 == "" or x1 == "" or x2 == "":
+	"""Return the difference x1/y1 - x2/y2, if possible"""
+	if y1 == 0 or y1 == "" or y2 == 0 or y2 == "" or x1 == "" or x2 == "":
 		return ""
 	else:
-		rd = (x1 / y1) - (x2 / y2)
-		return rd
+		return (x1 / y1) - (x2 / y2)
 
 def add_to_cell(array_3d, x, y, z, val):
 	"""Adds val to the x,y,zth element of array_3d, even if it was previously an empty string"""
@@ -114,20 +133,19 @@ def add_to_cell(array_3d, x, y, z, val):
 
 def add_to_header(header, is_weighted, i, val):
 	column = WANTED_COLUMNS[i]
-	if "Main" in column or "WR" in column:
-		header[2 if is_weighted else 1][i] = str(round(val * 100, 2)) + "%"
+	if "Main" in column or "WR" in column or "%" in column:
+		header[2 if is_weighted else 1][i] = str(round(val * 100, 1)) + "%"
 	elif "IWD" in column or "OHI" in column:
-		header[2 if is_weighted else 1][i] = str(round(val * 100, 2)) + "pp"
+		header[2 if is_weighted else 1][i] = str(round(val * 100, 1)) + "pp"
 	else:
-		header[2 if is_weighted else 1][i] = str(round(val, 2))
+		header[2 if is_weighted else 1][i] = str(round(val, 1))
 
 def main():
 	# determine the width and height of the input grids
 	# -------------------------------------------------
-	filenames = os.listdir(PATH)
 	num_cards = 0
-	#remove_bom_inplace(os.path.join(PATH, filenames[0]))
-	with open(os.path.join(PATH, filenames[0]), "rt") as f:
+	#remove_bom_inplace(os.path.join(PATH, FILENAMES[0]))
+	with open(os.path.join(PATH, FILENAMES[0]), "rt") as f:
 		reader = csv.reader(f)
 		# check that the columns in at least one file are correct, and count the number of rows
 		columns = [extract(s) for s in next(reader)]
@@ -139,49 +157,44 @@ def main():
 			num_cards += 1
 
 	# create an empty output grid with a different width and height
-	# ------------------------------------------------------
-	# the first three rows are always the same
-	grid_header = tuple([[0] * len(WANTED_COLUMNS) for _ in range(3)])
+	# -------------------------------------------------------------
+	# the first three rows belong to the header
+	grid_header = tuple([[""] * len(WANTED_COLUMNS) for _ in range(3)])
 	for i in range(len(WANTED_COLUMNS)):
 		grid_header[0][i] = WANTED_COLUMNS[i]
-	grid_header[1][0] = "Mean"
-	grid_header[2][0] = "Average"
-	# the rest of the rows correspond to cards
+	grid_header[1][0] = "Mean" # Average value among unique cards in set
+	grid_header[2][0] = "Average" # Average value among actual cards in packs
+	# each other row corresponds to a card in the set
 	grid = tuple([[""] * len(WANTED_COLUMNS) for _ in range(num_cards)])
 
 	# initialize variables for grid header
 	# ------------------------------------
-	non_averaged_columns = len(CONST_COLUMNS) + 1 * len(DRAFT_COLUMN_MODIFIERS)
-	header_totals_unweighted = [0] * (len(WANTED_COLUMNS) - non_averaged_columns)
-	header_totals_weighted = [0] * (len(WANTED_COLUMNS) - non_averaged_columns)
-	total_cards_picked = [0] * len(DRAFT_COLUMN_MODIFIERS)
-	header_weighted_denominators = [0] * (len(WANTED_COLUMNS) - non_averaged_columns)
-	default_numpicked = [0] * num_cards
+	non_averaged_columns = len(CONST_COLUMNS) + (len(DRAFT_COLUMN_MODIFIERS) if "#Picked" in DRAFT_COLUMNS else 0) # the number of columns for which averaging doesn't make sense
+	
+	header_totals_unweighted = [0] * (len(WANTED_COLUMNS) - non_averaged_columns) # each element is the numerator of a 'Mean'
+	header_totals_weighted = [0] * (len(WANTED_COLUMNS) - non_averaged_columns) # each element is the numerator of an 'Average'
+	header_weighted_denominators = [0] * (len(WANTED_COLUMNS) - non_averaged_columns) # each element is the denominator of an 'Average'
+	
+	default_numpicked = [0] * num_cards # used to calculate the weighting on the White, Blue, Black, Red, and Green averages
 
 	# add const statistics to grid
 	# ----------------------------
 	filename = CONST_FILENAME
-	if filename not in filenames:
-		# error checking
-		print("missing file " + filename)
-		exit()
-	with open(os.path.join(PATH,filename),"r") as f:
+	assert_filename(filename)
+	with open(os.path.join(PATH, filename), "r") as f:
 		reader = csv.reader(f)
 		next(reader) # skip the first row, which doesn't correspond to a card
 		for card_i in range(num_cards):
 			l = next(reader)
-			grid[card_i][0] = extract(l[0]) # Name
-			grid[card_i][1] = extract(l[1]) # Colour
-			grid[card_i][2] = extract(l[2]) # Rarity
+			grid[card_i][name_index()] = extract(l[CSV_NAME]) # Name
+			grid[card_i][colour_index()] = extract(l[CSV_COLOUR]) # Colour
+			grid[card_i][rarity_index()] = extract(l[CSV_RARITY]) # Rarity
 
 	# add draft statistics to grid
 	# ----------------------------
 	for mod_i in range(len(DRAFT_FILENAMES)):
 		filename = DRAFT_FILENAMES[mod_i]
-		if filename not in filenames:
-			# error checking
-			print("missing file " + filename)
-			exit()
+		assert_filename(filename)
 		with open(os.path.join(PATH,filename),"r") as f:
 			reader = csv.reader(f)
 			next(reader) # skip the first row, which doesn't correspond to a card
@@ -189,19 +202,22 @@ def main():
 				l = next(reader)
 
 				# Number Picked
-				numpicked = extract(l[5])
-				if (not isinstance(numpicked, float)):
+				numpicked = extract(l[CSV_NUMPICKED])
+				if isinstance(numpicked, float):
+					# store value for average calculations
+					if mod_i == 0:
+						default_numpicked[card_i] = numpicked
+					# add to grid
+					grid[card_i][numpicked_index(mod_i)] = numpicked
+				else:
+					# If Number Picked is missing, there's a problem
 					print("missing # Picked when card is " + card_i + ", i is " + i)
 					exit()
-				total_cards_picked[mod_i] += numpicked
-				if mod_i == 0:
-					default_numpicked[card_i] = numpicked
-				# add to grid
-				grid[card_i][numpicked_index(mod_i)] = numpicked
 
 				# ATA
-				ata = extract(l[6])
+				ata = extract(l[CSV_ATA])
 				if isinstance(ata, float):
+					# store value for average calculations
 					header_totals_unweighted[mod_i] += ata
 					header_totals_weighted[mod_i] += ata * numpicked
 					header_weighted_denominators[ata_index(mod_i) - non_averaged_columns] += numpicked
@@ -209,8 +225,9 @@ def main():
 					grid[card_i][ata_index(mod_i)] = str(round(ata, 2))
 
 				# Main %
-				mainboard_ratio = extract(l[8])
+				mainboard_ratio = extract(l[CSV_PERCENTGP])
 				if isinstance(mainboard_ratio, float):
+					# store value for average calculations
 					header_totals_unweighted[mod_i + 1 * len(DRAFT_COLUMN_MODIFIERS)] += mainboard_ratio
 					header_totals_weighted[mod_i + 1 * len(DRAFT_COLUMN_MODIFIERS)] += mainboard_ratio * numpicked
 					header_weighted_denominators[mainboard_percent_index(mod_i) - non_averaged_columns] += numpicked
@@ -221,20 +238,18 @@ def main():
 	# -----------------------------
 	for mod_i in range(len(INGAME_FILENAMES)):
 		filename = INGAME_FILENAMES[mod_i]
-		if filename not in filenames:
-			# error checking
-			print("missing file " + filename)
-			exit()
+		assert_filename(filename)
 		with open(os.path.join(PATH,filename),"r") as f:
 			reader = csv.reader(f)
 			next(reader) # skip the first row, which doesn't correspond to a card
 			for card_i in range(num_cards):
 				l = next(reader)
-				numpicked = extract(l[5])
+				numpicked = extract(l[CSV_NUMPICKED])
 
 				# GP WR
-				gpwr = extract(l[9])
+				gpwr = extract(l[CSV_GPWR])
 				if isinstance(gpwr, float):
+					# store value for average calculations
 					header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)] += gpwr
 					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)] += gpwr * numpicked
 					header_weighted_denominators[gpwr_index(mod_i) - non_averaged_columns] += numpicked
@@ -242,20 +257,21 @@ def main():
 					grid[card_i][gpwr_index(mod_i)] = str(round(gpwr * 100)) + "%"
 				
 				# IWD
-				iwd = extract(l[18])
+				iwd = extract(l[CSV_IWD])
 				if isinstance(iwd, float):
+					# store value for average calculations
 					header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd
 					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd * numpicked
-					print(iwd * numpicked)
 					header_weighted_denominators[iwd_index(mod_i) - non_averaged_columns] += numpicked
 					# add to grid as percentage-point-diff
 					grid[card_i][iwd_index(mod_i)] = str(round(iwd * 100)) + "pp"
 				
 				# OHI
-				ohwr = extract(l[11])
-				gihwr = extract(l[15])
+				ohwr = extract(l[CSV_OHWR])
+				gihwr = extract(l[CSV_GIHWR])
 				if isinstance(ohwr, float) and isinstance(gihwr, float):
 					ohi = ohwr - gihwr # OHI is the improvement from GIH WR to OH WR
+					# store value for average calculations
 					header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi
 					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi * numpicked
 					header_weighted_denominators[ohi_index(mod_i) - non_averaged_columns] += numpicked
@@ -268,10 +284,7 @@ def main():
 	games_won_vals = tuple([tuple([[""] * num_cards for i in range(5)]) for i in range(4)])
 	for colours in FILENAME_COLOURS:
 		filename = colours + "_card_ratings.csv"
-		if filename not in filenames:
-			# error checking
-			print("missing file " + filename)
-			exit()
+		assert_filename(filename)
 		with open(os.path.join(PATH,filename),"r") as f:
 			reader = csv.reader(f)
 			next(reader) # skip the first row, which doesn't correspond to a card
@@ -279,8 +292,8 @@ def main():
 				l = next(reader)
 
 				# Assess a card's GP WR in a certain deck
-				numgp = extract(l[7])
-				gpwr = extract(l[9])
+				numgp = extract(l[CSV_NUMGP])
+				gpwr = extract(l[CSV_GPWR])
 				if isinstance(numgp, float) and isinstance(gpwr, float):
 					numgpwins = numgp * gpwr
 				else:
@@ -288,8 +301,8 @@ def main():
 					numgpwins = ""
 
 				# Assess a card's OH WR in a certain deck
-				numoh = extract(l[10])
-				ohwr = extract(l[11])
+				numoh = extract(l[CSV_NUMOH])
+				ohwr = extract(l[CSV_OHWR])
 				if isinstance(numoh, float) and isinstance(ohwr, float):
 					numohwins = numoh * ohwr
 				else:
@@ -297,8 +310,8 @@ def main():
 					numohwins = ""
 				
 				# Assess a card's GIH WR in a certain deck
-				numgih = extract(l[14])
-				gihwr = extract(l[15])
+				numgih = extract(l[CSV_NUMGIH])
+				gihwr = extract(l[CSV_GIHWR])
 				if isinstance(numgih, float) and isinstance(gihwr, float):
 					numgihwins = numgih * gihwr
 				else:
@@ -306,51 +319,54 @@ def main():
 					numgihwins = ""
 
 				# Assess a card's GNS WR in a certain deck
-				numgns = extract(l[16])
-				gnswr = extract(l[17])
+				numgns = extract(l[CSV_NUMGNS])
+				gnswr = extract(l[CSV_GNSWR])
 				if isinstance(numgns, float) and isinstance(gnswr, float):
 					numgnswins = numgns * gnswr
 				else:
 					numgns = ""
 					numgnswins = ""
 
-				for s, colour_i in (("w",0),("u",1),("b",2),("r",3),("g",4)):
-					if s in colours:
-						add_to_cell(games_played_vals, GP_INDEX, colour_i, card_i, numgp)
-						add_to_cell(games_won_vals, GP_INDEX, colour_i, card_i, numgpwins)
-						add_to_cell(games_played_vals, OH_INDEX, colour_i, card_i, numoh)
-						add_to_cell(games_won_vals, OH_INDEX, colour_i, card_i, numohwins)
-						add_to_cell(games_played_vals, GIH_INDEX, colour_i, card_i, numgih)
-						add_to_cell(games_won_vals, GIH_INDEX, colour_i, card_i, numgihwins)
-						add_to_cell(games_played_vals, GNS_INDEX, colour_i, card_i, numgns)
-						add_to_cell(games_won_vals, GNS_INDEX, colour_i, card_i, numgnswins)
+				for colour, colour_i in (("w",0),("u",1),("b",2),("r",3),("g",4)):
+					if colour in colours:
+						add_to_cell(games_played_vals, COLOUR_GP_INDEX, colour_i, card_i, val=numgp)
+						add_to_cell(games_won_vals, COLOUR_GP_INDEX, colour_i, card_i, val=numgpwins)
+						add_to_cell(games_played_vals, COLOUR_OH_INDEX, colour_i, card_i, val=numoh)
+						add_to_cell(games_won_vals, COLOUR_OH_INDEX, colour_i, card_i, val=numohwins)
+						add_to_cell(games_played_vals, COLOUR_GIH_INDEX, colour_i, card_i, val=numgih)
+						add_to_cell(games_won_vals, COLOUR_GIH_INDEX, colour_i, card_i, val=numgihwins)
+						add_to_cell(games_played_vals, COLOUR_GNS_INDEX, colour_i, card_i, val=numgns)
+						add_to_cell(games_won_vals, COLOUR_GNS_INDEX, colour_i, card_i, val=numgnswins)
 					
 	for colour_i in range(5):
-		mod_i = colour_i + 4
+		mod_i = colour_i + len(INGAME_COLUMN_MODIFIERS) - 5
 		for card_i in range(num_cards):
 			# Assess a card's GP WR in all decks with a certain colour
-			gpwr = ratio(games_won_vals[GP_INDEX][colour_i][card_i], games_played_vals[GP_INDEX][colour_i][card_i])
+			gpwr = ratio(games_won_vals[COLOUR_GP_INDEX][colour_i][card_i], games_played_vals[COLOUR_GP_INDEX][colour_i][card_i])
 			
 			# Assess a card's GIH WR and GNS WR in all decks with a certain colour
-			iwd = ratio_difference(games_won_vals[GIH_INDEX][colour_i][card_i], games_played_vals[GIH_INDEX][colour_i][card_i], games_won_vals[GNS_INDEX][colour_i][card_i], games_played_vals[GNS_INDEX][colour_i][card_i])
+			iwd = ratio_difference(games_won_vals[COLOUR_GIH_INDEX][colour_i][card_i], games_played_vals[COLOUR_GIH_INDEX][colour_i][card_i], games_won_vals[COLOUR_GNS_INDEX][colour_i][card_i], games_played_vals[COLOUR_GNS_INDEX][colour_i][card_i])
 			
 			# Assess a card's OH WR and GIH WR in all decks with a certain colour
-			ohi = ratio_difference(games_won_vals[OH_INDEX][colour_i][card_i], games_played_vals[OH_INDEX][colour_i][card_i], games_won_vals[GIH_INDEX][colour_i][card_i], games_played_vals[GIH_INDEX][colour_i][card_i])
+			ohi = ratio_difference(games_won_vals[COLOUR_OH_INDEX][colour_i][card_i], games_played_vals[COLOUR_OH_INDEX][colour_i][card_i], games_won_vals[COLOUR_GIH_INDEX][colour_i][card_i], games_played_vals[COLOUR_GIH_INDEX][colour_i][card_i])
 			
 			# Add card data for header
 			if isinstance(gpwr, float):
+				# store value for average calculations
 				header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)] += gpwr
 				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)] += gpwr * default_numpicked[card_i]
 				header_weighted_denominators[gpwr_index(mod_i) - non_averaged_columns] += default_numpicked[card_i]
 				# add to grid as percentage
 				grid[card_i][gpwr_index(mod_i)] = str(round(gpwr * 100)) + "%"
 			if isinstance(iwd, float):
+				# store value for average calculations
 				header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd
 				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd * default_numpicked[card_i]
 				header_weighted_denominators[iwd_index(mod_i) - non_averaged_columns] += default_numpicked[card_i]
 				# add to grid as percentage-point-diff
 				grid[card_i][iwd_index(mod_i)] = str(round(iwd * 100)) + "pp"
 			if isinstance(ohi, float):
+				# store value for average calculations
 				header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi
 				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi * default_numpicked[card_i]
 				header_weighted_denominators[ohi_index(mod_i) - non_averaged_columns] += default_numpicked[card_i]
@@ -359,21 +375,24 @@ def main():
 
 	# Populate grid header
 	# --------------------
-	print(header_weighted_denominators[21])
-	for i in range(len(CONST_COLUMNS) + (len(DRAFT_COLUMN_MODIFIERS) if "#Picked" in DRAFT_COLUMNS else 0), len(WANTED_COLUMNS)):
-		column = WANTED_COLUMNS[i]
-		if "Trad." in column:
-			add_to_header(grid_header, True, i, ratio(header_totals_weighted[i - non_averaged_columns], header_weighted_denominators[i - non_averaged_columns]))
-		elif "Top" in column:
-			add_to_header(grid_header, True, i, ratio(header_totals_weighted[i - non_averaged_columns], header_weighted_denominators[i - non_averaged_columns]))
-		else:
-			add_to_header(grid_header, True, i, ratio(header_totals_weighted[i - non_averaged_columns], header_weighted_denominators[i - non_averaged_columns]))
+	# print(header_totals_unweighted[3])
+	# print(header_unweighted_denominators[3])
+	# print(header_totals_weighted[3])
+	# print(header_weighted_denominators[3])
+	for i in range(non_averaged_columns, len(WANTED_COLUMNS)):
 		add_to_header(grid_header, False, i, ratio(header_totals_unweighted[i - non_averaged_columns], num_cards))
+		add_to_header(grid_header, True, i, ratio(header_totals_weighted[i - non_averaged_columns], header_weighted_denominators[i - non_averaged_columns]))
 
 	# Finally, export the grid
 	# ------------------------
 	write_grid_to_file(grid_header, grid)
 
+def name_index():
+	return 0
+def colour_index():
+	return 1
+def rarity_index():
+	return 2
 def numpicked_index(offset):
 	return len(CONST_COLUMNS) + offset
 def ata_index(offset):
