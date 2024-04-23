@@ -163,7 +163,7 @@ def main():
 	for i in range(len(WANTED_COLUMNS)):
 		grid_header[0][i] = WANTED_COLUMNS[i]
 	grid_header[1][0] = "Mean" # Average value among unique cards in set
-	grid_header[2][0] = "Average" # Average value among actual cards in packs
+	grid_header[2][0] = "|Average|" # Average magnitude among actual cards in packs (always positive for IWD and OHI)
 	# each other row corresponds to a card in the set
 	grid = tuple([[""] * len(WANTED_COLUMNS) for _ in range(num_cards)])
 
@@ -265,7 +265,7 @@ def main():
 				if isinstance(iwd, float):
 					# store value for average calculations
 					header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd
-					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd * numpicked
+					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += abs(iwd) * numpicked
 					header_unweighted_denominators[iwd_index(mod_i) - non_averaged_columns] += 1
 					header_weighted_denominators[iwd_index(mod_i) - non_averaged_columns] += numpicked
 					# add to grid as percentage-point-diff
@@ -278,7 +278,7 @@ def main():
 					ohi = ohwr - gihwr # OHI is the improvement from GIH WR to OH WR
 					# store value for average calculations
 					header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi
-					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi * numpicked
+					header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 2 * len(INGAME_COLUMN_MODIFIERS)] += abs(ohi) * numpicked
 					header_unweighted_denominators[ohi_index(mod_i) - non_averaged_columns] += 1
 					header_weighted_denominators[ohi_index(mod_i) - non_averaged_columns] += numpicked
 					# add to grid as percentage-point-diff
