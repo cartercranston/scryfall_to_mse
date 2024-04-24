@@ -10,6 +10,7 @@ DATE_END = ""
 
 CARDLIST_PATH = r""
 CREATE_PATH = r""
+SEARCH_PATH = r""
 
 def main():
     cardlist = get_cardlist(CARDLIST_PATH)
@@ -27,6 +28,7 @@ def main():
                 max_decks_for_one_card = len(decks_with_card)
 
     create_sql_db_from_decks(decks_by_card, CREATE_PATH, NAME, max_decks_for_one_card)
+    create_example_search(SEARCH_PATH, NAME, max_decks_for_one_card)
 
 def get_cardlist(cardlist_path):
     """Returns a list containing the lines of a file."""
@@ -314,6 +316,34 @@ card_name varchar(255) NOT NULL,
     # write the complete query to a .sql file
     with open (path, "wb") as f:
         f.write((header + deck_table_row_creation + card_table_row_creation).encode("utf-8"))
+
+def create_example_search(path, database_name, max_num_decks_for_one_card):
+    """Creates an SQL query which will search for all of the decks containing the first card in the cards table."""
+
+    s = "SELECT * FROM " + database_name + ".decks\n"
+    s += """ WHERE deck_id IN 
+       (SELECT deck_id1 FROM """ + database_name + """.cards
+         WHERE card_id=1)\n\n"""
+    for i in range(2, max_num_decks_for_one_card+1):
+        s += """    OR deck_id IN
+       (SELECT deck_id""" + str(i) + " FROM " + database_name + """.cards
+         WHERE card_id=1)\n\n"""
+
+    # write the query to a .sql file
+    with open (path, "w") as f:
+        f.write(s)
+    
+def print_request(request_obj):
+    """Converts a dictionary containing a POST request into GET format, to be used as a query in a web browser."""
+    first = True
+    for (key, value) in request_obj.items():
+        if first:
+            first = False
+        else:
+            print("&", end="")
+        print(key + "=" + str(value), end="")
+    print()
+    print()
 
 if __name__ == "__main__":
     main()
