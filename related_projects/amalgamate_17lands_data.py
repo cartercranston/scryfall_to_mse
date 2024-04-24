@@ -368,7 +368,7 @@ def main():
 			if isinstance(iwd, float):
 				# store value for average calculations
 				header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd
-				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 1 * len(INGAME_COLUMN_MODIFIERS)] += iwd * default_numpicked[card_i]
+				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 1 * len(INGAME_COLUMN_MODIFIERS)] += abs(iwd) * default_numpicked[card_i]
 				header_unweighted_denominators[iwd_index(mod_i) - non_averaged_columns] += 1
 				header_weighted_denominators[iwd_index(mod_i) - non_averaged_columns] += default_numpicked[card_i]
 				# add to grid as percentage-point-diff
@@ -376,7 +376,7 @@ def main():
 			if isinstance(ohi, float):
 				# store value for average calculations
 				header_totals_unweighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS) + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi
-				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 2 * len(INGAME_COLUMN_MODIFIERS)] += ohi * default_numpicked[card_i]
+				header_totals_weighted[mod_i + 2 * len(DRAFT_COLUMN_MODIFIERS)  + 2 * len(INGAME_COLUMN_MODIFIERS)] += abs(ohi) * default_numpicked[card_i]
 				header_unweighted_denominators[ohi_index(mod_i) - non_averaged_columns] += 1
 				header_weighted_denominators[ohi_index(mod_i) - non_averaged_columns] += default_numpicked[card_i]
 				# add to grid as percentage-point-diff
@@ -384,10 +384,10 @@ def main():
 
 	# Populate grid header
 	# --------------------
-	# print(header_totals_unweighted[3])
-	# print(header_unweighted_denominators[3])
-	# print(header_totals_weighted[3])
-	# print(header_weighted_denominators[3])
+	print(header_totals_unweighted[16])
+	print(header_unweighted_denominators[16])
+	print(header_totals_weighted[16])
+	print(header_weighted_denominators[16])
 	for i in range(non_averaged_columns, len(WANTED_COLUMNS)):
 		add_to_header(grid_header, False, i, ratio(header_totals_unweighted[i - non_averaged_columns], header_unweighted_denominators[i - non_averaged_columns]))
 		add_to_header(grid_header, True, i, ratio(header_totals_weighted[i - non_averaged_columns], header_weighted_denominators[i - non_averaged_columns]))
