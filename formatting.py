@@ -48,18 +48,44 @@ class Formatting:
 			else:
 				s += symbol
 		return s + generic + appendix
+	
+	def mana_value(self):
+		mv = 0
+		symbols = self.mana_cost.replace("{", "").split("}")
+		for symbol in symbols:
+			if symbol.isdigit():
+				mv += int(symbol)
+			# hybrid symbols
+			elif "/" in symbol:
+				if "2" in symbol:
+					mv += 2
+				else:
+					mv += 1
+			elif symbol == "X":
+				pass
+			else:
+				mv += 1
+		return mv
 
 	def format_art(self):
-		return "\n\n".join(["", "make_image;", self.cardname, "down", "", "enter", "", "enter", ""])
+		return "\n\n".join(["", "make_image;", self.cardname + ".jpg", "down", "", "enter", "", "enter", ""])
 
 	def format_type(self):
-		type = self.type.replace(r" — ", r"-").replace("−", r"-") # MSE doesn't like emdashes, and doesn't need spaces before or after hyphens
+		# MSE doesn't like emdashes, and doesn't need spaces before or after hyphens
+		type = self.type.replace(r" — ", r"-").replace("−", r"-")
+		# I will generally want to change the typeline of Legendary permanents
 		if "Legendary" in type:
-			type = type.replace("Legendary", "")
+			type = type.replace("Legendary ", "")
 			if "Creature" in type:
 				type = type + " Legend"
-		if self.mana_cost < 3 or ("Sacrifice " + self.cardname) in self.text_box:
+		# I will generally want cheap artifacts and artifacts that sacrifice themselves to be Baubles
+		if self.mana_value() < 3 or ("Sacrifice " + self.cardname) in self.text_box:
 			type = type.replace("Artifact", "Bauble")
+
+		# Instant is no longer a card type
+		if "Instant" in type:
+			type = type.replace("Instant", "Sorcery")
+
 		return type
 
 	def format_rarity(self):
@@ -71,25 +97,42 @@ class Formatting:
 		# add legend rule
 		if "Legendary" in self.type:
 			s += "Unique\n"
+		
+		# add keyword to instants
+		if "Instant" in self.type:
+			s += "Instant\n"
 
 		# format generic mana symbols and remove braces from other mana symbols
-		tokens = self.text_box.split("{")
-		for token in tokens:
-			split = token.split("}")
-			if len(split) == 1:
-				s += split[0]
-				continue
-			elif len(split) == 2:
-				if split[0].isdigit() and split[0] != "0":
-					s += "V" * int(split[0])
-				else:
-					s += split[0]
-				s += split[1]
+		in_mana_symbol = False
+		in_compound_symbol = False
+		generic = ""
+		for char in self.text_box:
+			if char == "{":
+				in_mana_symbol = True
+			elif in_mana_symbol and char == "}":
+				in_mana_symbol = False
+				in_compound_symbol = True
+			elif in_mana_symbol and char.isdigit() and char != "0":
+				generic += "V" * int(char)
+			elif in_mana_symbol:
+				s += char
+			elif in_compound_symbol:
+				# if a } isn't immediately followed by a {, the compound mana symbol ends
+				in_compound_symbol = False
+				s += generic
+				generic = ""
+				s += char
 			else:
-				print("token longer than expected in format_text_box, where text box is:\n" + self.text_box)
+				s += char
 
 		# remove reminder text that's not on its own line
 		s = re.sub(r"(?<!\n)\(.*\)", "", s)
+
+		# MSE doesn't like emdashes
+		s = re.sub(r"[—−]", r"-", s)
+
+		# add delay for equip costs
+		s = re.sub(r"(?<=Equip )", r"\n\n\n\n", s)
 
 		# add flavour text
 		if self.flavour_text:
@@ -98,56 +141,67 @@ class Formatting:
 		return s
 
 	def format_watermark(self):
-		match self.watermark:
-			case "Azorius":
-				commands = (["down", "down", "down", "right"])
-			case "Dimir":
-				commands = ["down", "down", "down", "right", "down"]
-			case "Rakdos":
-				commands = ["down", "down", "down", "right", "down", "down"]
-			case "Gruul":
-				commands = ["down", "down", "down", "right", "down", "down", "down"]
-			case "Selesnya":
-				commands = ["down", "down", "down",  "right", "down", "down", "down", "down"]
-			case "Orzhov":
-				commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down"]
-			case "Izzet":
-				commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down", "down"]
-			case "Golgari":
-				commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down", "down", "down"]
-			case "Boros":
-				commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down", "down", "down", "down"]
-			case "Simic":
-				commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down", "down", "down", "down", "down"]
-			case "Mirrodin":
-				commands = ["down", "down", "down", "down", "right"]
-			case "Phyrexia":
-				commands = ["down", "down", "down", "down", "right", "down"]
-			case "Abzan":
-				commands = ["down", "down", "down", "down", "down", "right"]
-			case "Jeskai":
-				commands = ["down", "down", "down", "down", "down", "right", "down"]
-			case "Sultai":
-				commands = ["down", "down", "down", "down", "down", "right", "down", "down"]
-			case "Mardu":
-				commands = ["down", "down", "down", "down", "down", "right", "down", "down", "down"]
-			case "Temur":
-				commands = ["down", "down", "down", "down", "down", "right", "down", "down", "down", "down"]
-			case "Dromoka":
-				commands = ["down", "down", "down", "down", "down", "down", "right"]
-			case "Ojutai":
-				commands = ["down", "down", "down", "down", "down", "down", "right", "down"]
-			case "Silumgar":
-				commands = ["down", "down", "down", "down", "down", "down", "right", "down", "down"]
-			case "Kolaghan":
-				commands = ["down", "down", "down", "down", "down", "down", "right", "down", "down", "down"]
-			case "Atarka":
-				commands = ["down", "down", "down", "down", "down", "down", "right", "down", "down", "down", "down"]
-			case _:
-				return ""
-		commands.insert("down", 0)
+		if self.cardname == "Plains":
+			commands = (["down", "right"])
+		elif self.cardname == "Island":
+			commands = (["down", "right", "down"])
+		elif self.cardname == "Swamp":
+			commands = (["down", "right", "down", "down"])
+		elif self.cardname == "Mountain":
+			commands = (["down", "right", "down", "down", "down"])
+		elif self.cardname == "Forest":
+			commands = (["down", "right", "down", "down", "down", "down"])
+		else:
+			match self.watermark:
+				case "Azorius":
+					commands = (["down", "down", "down", "right"])
+				case "Dimir":
+					commands = ["down", "down", "down", "right", "down"]
+				case "Rakdos":
+					commands = ["down", "down", "down", "right", "down", "down"]
+				case "Gruul":
+					commands = ["down", "down", "down", "right", "down", "down", "down"]
+				case "Selesnya":
+					commands = ["down", "down", "down",  "right", "down", "down", "down", "down"]
+				case "Orzhov":
+					commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down"]
+				case "Izzet":
+					commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down", "down"]
+				case "Golgari":
+					commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down", "down", "down"]
+				case "Boros":
+					commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down", "down", "down", "down"]
+				case "Simic":
+					commands = ["down", "down", "down", "right", "down", "down", "down", "down", "down", "down", "down", "down", "down"]
+				case "Mirrodin":
+					commands = ["down", "down", "down", "down", "right"]
+				case "Phyrexia":
+					commands = ["down", "down", "down", "down", "right", "down"]
+				case "Abzan":
+					commands = ["down", "down", "down", "down", "down", "right"]
+				case "Jeskai":
+					commands = ["down", "down", "down", "down", "down", "right", "down"]
+				case "Sultai":
+					commands = ["down", "down", "down", "down", "down", "right", "down", "down"]
+				case "Mardu":
+					commands = ["down", "down", "down", "down", "down", "right", "down", "down", "down"]
+				case "Temur":
+					commands = ["down", "down", "down", "down", "down", "right", "down", "down", "down", "down"]
+				case "Dromoka":
+					commands = ["down", "down", "down", "down", "down", "down", "right"]
+				case "Ojutai":
+					commands = ["down", "down", "down", "down", "down", "down", "right", "down"]
+				case "Silumgar":
+					commands = ["down", "down", "down", "down", "down", "down", "right", "down", "down"]
+				case "Kolaghan":
+					commands = ["down", "down", "down", "down", "down", "down", "right", "down", "down", "down"]
+				case "Atarka":
+					commands = ["down", "down", "down", "down", "down", "down", "right", "down", "down", "down", "down"]
+				case _:
+					return ""
+		commands.insert(0, "down")
 		commands.append("enter")
-		return ''.join(["\n\n" + command + "\n\n" for command in commands])
+		return "".join(["\n\n" + command + "\n\n" for command in commands])
 			
 	def format_pt(self):
 		if self.pt == "/":
