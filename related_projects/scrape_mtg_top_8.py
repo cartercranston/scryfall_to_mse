@@ -323,17 +323,25 @@ card_name varchar(255) NOT NULL,
     with open (path, "wb") as f:
         f.write((header + deck_table_row_creation + card_table_row_creation).encode("utf-8"))
 
-def create_example_search(path, database_name, max_num_decks_for_one_card):
-    """Creates an SQL query which will search for all of the decks containing the first card in the cards table."""
+def create_search_procedure(path, database_name, max_num_decks_for_one_card):
+    """Creates an SQL query which will add a procedure to a MySQL database. 
+    The procedure takes in a card id and finds all decks in the database which contain that card."""
 
-    s = "SELECT * FROM " + database_name + ".decks\n"
+    s = """CREATE DEFINER=`root`@`localhost` PROCEDURE `search_decks`(IN id integer)
+BEGIN
+"""
+    s += "SELECT * FROM " + database_name + ".decks\n"
     s += """ WHERE deck_id IN 
        (SELECT deck_id1 FROM """ + database_name + """.cards
-         WHERE card_id=1)"""
+         WHERE card_id=id)"""
     for i in range(2, max_num_decks_for_one_card+1):
         s += """\n\n    OR deck_id IN
        (SELECT deck_id""" + str(i) + " FROM " + database_name + """.cards
-         WHERE card_id=1)"""
+         WHERE card_id=id)"""
+
+    s += """;
+END
+"""
 
     # write the query to a .sql file
     with open (path, "w") as f:
