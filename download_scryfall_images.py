@@ -71,10 +71,11 @@ def make_folders(image_folder_path, text_folder_path, cardlist_path, cards):
 		if text_folder_path:
 			add_to_text_folder(text_folder_path, card["name"], card["mana_cost"], card["type"], card["rarity"], card["text_box"], card["flavour_text"], card["watermark"], card["pt"], card["artist"])
 		if cardlist_path:
-			cardlist += card["name"] + "\n"
+			if card["name"] != "Plains" and card["name"] != "Island" and card["name"] != "Swamp" and card["name"] != "Mountain" and card["name"] != "Forest" and card["name"][:2] != "A-":
+				cardlist += "\n" + card["name"] if cardlist != "" else card["name"]
 	# add a list of all card names to the folder as cardlist.txt
 	if cardlist_path:
-		with open(cardlist_path, "x") as f:
+		with open(cardlist_path, "w") as f:
 			f.write(cardlist)
 
 def add_to_image_folder(folder_path, cardname, file):
