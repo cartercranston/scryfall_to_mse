@@ -3,10 +3,10 @@ import requests
 import datetime
 import time
 
-NAME = "ravnica_standard"
-FORMAT = "ST" #ST, MO, PAU, LE, PI?
-DATE_START = ""
-DATE_END = ""
+NAME = ""
+FORMAT = "" #ST, MO, PAU, LE, PI?, cEDH?
+DATE_START = None
+DATE_END = None #
 
 CARDLIST_PATH = r""
 CREATE_PATH = r""
@@ -17,11 +17,12 @@ def main():
     decks_by_card = {}
     max_decks_for_one_card = 0
 
-    for card in cardlist:
-        decks_with_card = get_all_decks(card)
+    for cardname in cardlist:
+        decks_with_card = get_all_decks(cardname)
         if decks_with_card != []:
+            print(cardname)
             # add decks to full dict
-            decks_by_card[card] = decks_with_card
+            decks_by_card[cardname] = decks_with_card
             # update the maximum number of decks that any one card appears in
             if len(decks_with_card) > max_decks_for_one_card:
                 print(len(decks_with_card))
@@ -37,7 +38,7 @@ def get_cardlist(cardlist_path):
         s = f.read()
     return s.split("\n")
 
-def get_all_decks(card):
+def get_all_decks(cardname):
     """
     Uses the process_request and get_decks functions to get either
 		60 Professional decks,
@@ -46,7 +47,7 @@ def get_all_decks(card):
     containing the card, which are returned as a list.
     """
     # if the card has seen no play at all, return an empty list
-    initial_request = format_request(card, min_level=2, format=FORMAT, date_start=DATE_START, date_end=DATE_END)
+    initial_request = format_request(cardname, min_level=2, format=FORMAT, date_start=DATE_START, date_end=DATE_END)
     initial_soup = process_request(initial_request)
     initial_decks = get_decks(initial_soup)
     if len(initial_decks) == 0:
@@ -56,34 +57,40 @@ def get_all_decks(card):
     decks_with_card = []
 
     # get up to 60 Professional decks
-    request = format_request(card, min_level=4, format=FORMAT, date_start=DATE_START, date_end=DATE_END)
-    soup = process_request(request), card
+    request = format_request(cardname, min_level=4, format=FORMAT, date_start=DATE_START, date_end=DATE_END)
+    soup = process_request(request)
     while soup:
         decks_with_card.extend(get_decks(soup))
         if len(decks_with_card) < 60:
             soup = next_page(soup, request)
+        else:
+            break
     # if subsequent steps will add nothing, store the decks and skip to the next card
     if len(decks_with_card) >= 50:
         return decks_with_card[:60]
 
     # get up to 50 Major decks
-    request = format_request(card, min_level=3, max_level=3, format=FORMAT, date_start=DATE_START, date_end=DATE_END)
+    request = format_request(cardname, min_level=3, max_level=3, format=FORMAT, date_start=DATE_START, date_end=DATE_END)
     soup = process_request(request)
     while soup:
         decks_with_card.extend(get_decks(soup))
         if len(decks_with_card) < 50:
             soup = next_page(soup, request)
+        else:
+            break
     # if subsequent steps will add nothing, store the decks and skip to the next card
     if len(decks_with_card) >= 40:
         return decks_with_card[:50]
 
     # get up to 40 Competitive decks
-    request = format_request(card, min_level=2, max_level=2, format=FORMAT, date_start=DATE_START, date_end=DATE_END)
+    request = format_request(cardname, min_level=2, max_level=2, format=FORMAT, date_start=DATE_START, date_end=DATE_END)
     soup = process_request(request)
     while soup:
         decks_with_card.extend(get_decks(soup))
         if len(decks_with_card) < 40:
             soup = next_page(soup, request)
+        else:
+            break
     return decks_with_card[:40]
 
 def process_request(request_obj):
@@ -109,7 +116,7 @@ def assert_soup(soup, request_obj):
     else:
         return soup
 
-def format_request(card, format="", min_level=1, sideboard=True, date_start=False, date_end=False):
+def format_request(card, format="", min_level=1, max_level=4, sideboard=True, date_start=False, date_end=False):
     """Creates a POST request for mtgtop8 to get info about a certain card's role in a certain format.
     It is a json object.
     
@@ -143,13 +150,13 @@ def format_request(card, format="", min_level=1, sideboard=True, date_start=Fals
     # request_obj["archetype_sel[PREM]"] = ""
 
     # include all decks whose level is greater than or equal to min_level
-    if min_level <= 4:
+    if min_level <= 4 and max_level >= 4:
         request_obj["compet_check[P]"] = 1
-    if min_level <= 3:
+    if min_level <= 3 and max_level >= 3:
         request_obj["compet_check[M]"] = 1
-    if min_level <= 2:
+    if min_level <= 2 and max_level >= 2:
         request_obj["compet_check[C]"] = 1
-    if min_level <= 1:
+    if min_level <= 1 and max_level >= 1:
         request_obj["compet_check[R]"] = 1
 
     # always look for the card in mainboards, and may also look in sideboards
@@ -225,7 +232,7 @@ def next_page(soup, request):
     page_num = soup.find(class_="Nav_cur").string
     page_num = str(int(page_num) + 1)
     request["current_page"] = page_num
-    return process_partial_request(request)
+    return process_request(request)
 
 def create_sql_db_from_decks(decks, path, database_name, max_num_decks_for_one_card):
     """ Creates an SQL query which will create a relational database of cards and decks.
@@ -310,7 +317,6 @@ card_name varchar(255) NOT NULL,
             (d, m, y) = str(deck[5]).split("/")
             deck_table_row_creation += ", '" + y + "-" + m + "-" + d + "'\n);\n\n"
         except:
-            print(deck[5])
             pass
     
     # write the complete query to a .sql file
@@ -323,11 +329,11 @@ def create_example_search(path, database_name, max_num_decks_for_one_card):
     s = "SELECT * FROM " + database_name + ".decks\n"
     s += """ WHERE deck_id IN 
        (SELECT deck_id1 FROM """ + database_name + """.cards
-         WHERE card_id=1)\n\n"""
+         WHERE card_id=1)"""
     for i in range(2, max_num_decks_for_one_card+1):
-        s += """    OR deck_id IN
+        s += """\n\n    OR deck_id IN
        (SELECT deck_id""" + str(i) + " FROM " + database_name + """.cards
-         WHERE card_id=1)\n\n"""
+         WHERE card_id=1)"""
 
     # write the query to a .sql file
     with open (path, "w") as f:
